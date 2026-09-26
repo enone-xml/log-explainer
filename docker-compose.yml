@@ -1,0 +1,10 @@
+# docker-compose.yml - describes how to run the app with one command:
+#   docker compose up --build
+
+services:
+  web:
+    build: .               # Build the image from the Dockerfile in this folder
+    env_file: .env         # Load ANTHROPIC_API_KEY and CLAUDE_MODEL from .env
+    ports:
+      - "8000:8000"        # your-computer-port:container-port
+    restart: unless-stopped  # Restart automatically if it crashes

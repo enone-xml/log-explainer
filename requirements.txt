@@ -1,0 +1,5 @@
+# Python libraries the app needs. Exact versions are "pinned" so every
+# build installs the same thing and nothing breaks by surprise.
+anthropic==1.8.0     # Official SDK for talking to Claude
+fastapi==0.141.1     # The web framework
+uvicorn==0.54.0      # The server that runs the FastAPI app

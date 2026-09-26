@@ -1,0 +1,8 @@
+# Secrets: never commit these
+.env
+
+# Python leftovers
+__pycache__/
+*.pyc
+.venv/
+venv/

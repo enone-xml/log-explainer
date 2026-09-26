@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log Explainer</title>
+  <style>
+    /* --- Basic page styling. Plain CSS, nothing fancy. --- */
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      background: #f6f7f9;
+      color: #1d2330;
+    }
+    h1 { margin-bottom: 4px; }
+    .subtitle { color: #5b6475; margin-top: 0; }
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      height: 260px;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      padding: 12px;
+      border: 1px solid #c9ced8;
+      border-radius: 8px;
+    }
+    button {
+      margin-top: 12px;
+      padding: 10px 22px;
+      font-size: 15px;
+      border: none;
+      border-radius: 8px;
+      background: #2f5bd3;
+      color: white;
+      cursor: pointer;
+    }
+    button:disabled { background: #8a9bc9; cursor: wait; }
+    .card {
+      background: white;
+      border: 1px solid #dde1e8;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 16px;
+    }
+    .card h2 { font-size: 16px; margin: 0 0 8px; }
+    .card p { white-space: pre-wrap; margin: 0; line-height: 1.5; }
+    pre {
+      background: #1d2330;
+      color: #e8ecf3;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    .error { border-color: #d9534f; background: #fdf2f2; color: #8a1f1b; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Log Explainer</h1>
+  <p class="subtitle">Paste a log and Claude will explain what went wrong.</p>
+
+  <!-- Where you paste the log -->
+  <textarea id="log" placeholder="Paste your log here..."></textarea>
+  <button id="explain-btn">Explain</button>
+
+  <!-- Shown if something goes wrong -->
+  <div id="error" class="card error hidden"></div>
+
+  <!-- The results. Hidden until we have an answer. -->
+  <div id="results" class="hidden">
+    <div class="card"><h2>Summary</h2><p id="summary"></p></div>
+    <div class="card"><h2>Likely root cause</h2><p id="root_cause"></p></div>
+    <div class="card"><h2>Suggested fix</h2><p id="suggested_fix"></p></div>
+    <div class="card"><h2>Key log lines</h2><pre id="key_lines"></pre></div>
+  </div>
+
+  <script>
+    // Grab the page elements we need to work with.
+    const logBox = document.getElementById("log");
+    const button = document.getElementById("explain-btn");
+    const errorBox = document.getElementById("error");
+    const results = document.getElementById("results");
+
+    // Runs when the Explain button is clicked.
+    button.addEventListener("click", async () => {
+      // Reset the page and show that we're working.
+      errorBox.classList.add("hidden");
+      results.classList.add("hidden");
+      button.disabled = true;
+      button.textContent = "Explaining...";
+
+      try {
+        // Send the log to our backend as JSON.
+        const response = await fetch("/explain", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ log: logBox.value }),
+        });
+        const data = await response.json();
+
+        // A non-2xx status means the backend sent us {"error": "..."}.
+        if (!response.ok) {
+          throw new Error(data.error || "Something went wrong.");
+        }
+
+        // Fill in the results. We use textContent (not innerHTML) so any
+        // HTML inside the log is shown as text, never run by the browser.
+        document.getElementById("summary").textContent = data.summary;
+        document.getElementById("root_cause").textContent = data.root_cause;
+        document.getElementById("suggested_fix").textContent = data.suggested_fix;
+        document.getElementById("key_lines").textContent =
+          data.key_lines.length ? data.key_lines.join("\n") : "(no specific lines stood out)";
+        results.classList.remove("hidden");
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.remove("hidden");
+      } finally {
+        // Always put the button back to normal, success or failure.
+        button.disabled = false;
+        button.textContent = "Explain";
+      }
+    });
+  </script>
+</body>
+</html>
